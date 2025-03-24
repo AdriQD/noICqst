@@ -1,0 +1,1 @@
+This is the new version of the deep learning application for compressed sensing density matrices improvements. The current project is absed on Leonardo codes, Claudio ground states and Adriano attention models (eventually plus other in the upcoming future).
