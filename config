@@ -1,0 +1,12 @@
+[TRAIN]
+learningRate = 0.1
+optimizer = 
+batchSize = 2
+numgpus = 1
+numEpochs = 4
+
+[DATA]
+PauliFilePath = '..path/to/PauliString..'
+NumQubits = "NumQubits"
+NumShots = 1000
+NumPauliStrings = 33
