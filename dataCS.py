@@ -113,19 +113,17 @@ class CSdata():
 		return A
 
 
-	def density_matrix(self,dim):
+	def density_matrix(self):
 		
 		"""
 		Random density matrix of dimension di sampled form Haar measure
 		"""
-
+		dim = 2**self.nq
 		psi = sp.stats.unitary_group.rvs(dim)[:, 0]
 		dens = np.outer(psi.conj(), psi)
 
 		return dens
 
-	
-	
 
 	def compressed_sensing(self, prob, A, epsilon):
 		"""
@@ -175,3 +173,23 @@ class CSdata():
 				return (dict(theoreticalProb = probs, experimentalProb =  exp_probs, epsilon = tolerance ))
 			else:
 				return dict(csdm = DM_withShots ,thdm = dens)
+
+	def ParallelGenData(self , DatasetDim,  wantprobes : False):
+	
+			dens = self.density_matrix(self.nq)
+			paulis = self.string2paulibasis(self.path)
+			# vectorized version of the POVM
+			vec_paulis = self.base2operator(paulis, True)
+			probs = np.abs(vec_paulis.conj().T@dens.reshape(-1, 1, order="F"))
+			exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
+
+			#approximation of CS tolerance for a given number of shots, as per article ....
+			tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
+
+			DM_withShots = self.compressed_sensing(exp_probs, vec_paulis, tolerance)
+
+			if wantprobes:
+				return (dict(theoreticalProb = probs, experimentalProb =  exp_probs, epsilon = tolerance ))
+			else:
+				return dict(csdm = DM_withShots ,thdm = dens)
+
