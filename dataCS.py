@@ -2,6 +2,8 @@ import numpy as np
 import scipy as sp
 import cvxpy as cp
 import random
+from densityMatrix import DensityMatrixIterator
+from multiprocessing import Pool
 
 import configparser
 
@@ -174,9 +176,26 @@ class CSdata():
 			else:
 				return dict(csdm = DM_withShots ,thdm = dens)
 
-	def ParallelGenData(self , DatasetDim,  wantprobes : False):
+	def ParallelGenData(self , num_matrices):
+
+		"""
+		This is a parallelized function to generate the dataset for trianing the network. Given num_matrices random
+		density matrices, calculate the Cs reconsturction using the set of Pauli strings previously created and uploaded
+		from the function string2paulibasis, as usual.
+
+		inputs:
+			num_matrices: the number of density matrices we want to generate
+
+		returns:
+			a tuple (CS_reconstruction, dm) with the CS reconstruction and the original density random density matrix
+		
+		"""
 	
-			dens = self.density_matrix(self.nq)
+			#dens = self.density_matrix(self.nq)
+
+
+		def csReconstruction(iterator):
+			dens = next(iterator)
 			paulis = self.string2paulibasis(self.path)
 			# vectorized version of the POVM
 			vec_paulis = self.base2operator(paulis, True)
@@ -185,11 +204,11 @@ class CSdata():
 
 			#approximation of CS tolerance for a given number of shots, as per article ....
 			tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
+			return  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
 
-			DM_withShots = self.compressed_sensing(exp_probs, vec_paulis, tolerance)
+		DMiterators = [DensityMatrixIterator(self.nq) for _ in range(num_matrices)]
+		with Pool() as pool:
+			# Map the function to generate random density matrices for each worker
+			result = pool.map(csReconstruction, DMiterators)
 
-			if wantprobes:
-				return (dict(theoreticalProb = probs, experimentalProb =  exp_probs, epsilon = tolerance ))
-			else:
-				return dict(csdm = DM_withShots ,thdm = dens)
-
+		return result
