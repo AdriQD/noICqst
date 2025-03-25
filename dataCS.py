@@ -44,6 +44,7 @@ def generate_unique_base3_numbers(N, length,path):
 		generated.add(num)
 	
 	generated = list(generated)
+	print(generated)
 	np.save(path, np.array(generated), allow_pickle=True)
 
 
@@ -155,9 +156,11 @@ class CSdata():
 		objective = cp.Minimize(cp.normNuc(de))
 		problema = cp.Problem(objective, constraints)
 		result = problema.solve(solver=cp.SCS, verbose = False)
-
-		return de.value/np.trace(de.value)
-
+		try:
+			return de.value/np.trace(de.value)
+		except ValueError:
+			print('exception occured')
+			return 'nan'
 
 	def GenerateData(self , dens , wantprobes : False):
 	
@@ -205,11 +208,11 @@ class CSdata():
 		exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
 		#approximation of CS tolerance for a given number of shots, as per article ....
 		tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
-		out =  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
-		if out is "NoneType":
-			return "nan"
-		else:
-			return out
+		csout = self.compressed_sensing(exp_probs, vec_paulis, tolerance)
+		out= (csout,dens)
+		#print('from inside', csout.shape)
+		return out
+
 	
 
 	def ParallelGenData(self , num_matrices, numcpu):
@@ -247,7 +250,7 @@ class CSdata():
 if __name__ == "__main__":
 
 	#1) testing the generation of random pauli strings
-	#generate_unique_base3_numbers(NumPauliStrings,NumQubits,path)
+	generate_unique_base3_numbers(NumPauliStrings,NumQubits,path)
 	#o = np.load(path+'.npy', allow_pickle=True)
 	#print(o)
 
@@ -279,8 +282,7 @@ if __name__ == "__main__":
 	#	print(mat.shape)
 
 	print('num CPU available on computer', cpu_count())
-	o = list(ob.ParallelGenData(8,4))
-	for i in range(len(o)):
-		
-		print(o[i][0].shape), print('trace', np.trace(o[i][0]))
+	o = list(ob.ParallelGenData(4,numcpu))
+	print(o)
+
 
