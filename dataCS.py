@@ -218,18 +218,24 @@ class CSdata():
 if __name__ == "__main__":
 
 	#testing the generation of random pauli strings
-	generate_unique_base3_numbers(NumPauliStrings,NumQubits,path)
-	o = np.load(path+'.npy', allow_pickle=True)
-	print(o)
+	#generate_unique_base3_numbers(NumPauliStrings,NumQubits,path)
+	#o = np.load(path+'.npy', allow_pickle=True)
+	#print(o)
 
 	#testing density matrix generation
-	ob = CSdata(NumQubits,NumShots,NumPauliStrings,path)
-	d = ob.density_matrix()
-	print(d.shape),print(np.trace(d).real)
+	#ob = CSdata(NumQubits,NumShots,NumPauliStrings,path)
+	#d = ob.density_matrix()
+	#print(d.shape),print(np.trace(d).real)
 
-	netdata = ob.GenerateData(d,False)
-	print
-	print("fidelity WITH shots approximation: ", np.round(np.abs(np.trace(netdata['csdm']@netdata['thdm'])), 3))
+	#netdata = ob.GenerateData(d,False)
+	#print
+	#print("fidelity WITH shots approximation: ", np.round(np.abs(np.trace(netdata['csdm']@netdata['thdm'])), 3))
+	
 
+	#TESTING THE DENSITY MATRIX ITERATOR. It must generate a list of different density matrices
+	DMiterators = [DensityMatrixIterator(1) for _ in range(3)]
+	for el in DMiterators:
+		mat = next(el)
+		print(mat)
 
 
