@@ -280,5 +280,6 @@ if __name__ == "__main__":
 	print('num CPU available on computer', cpu_count())
 	o = list(ob.ParallelGenData(3,numcpu))
 	for i in range(3):
+		
 		print(o[i][0].shape), print('total length', len(o))
 
