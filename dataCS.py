@@ -154,7 +154,7 @@ class CSdata():
 					   - prob.reshape(-1, 1)) <= epsilon]
 		objective = cp.Minimize(cp.normNuc(de))
 		problema = cp.Problem(objective, constraints)
-		result = problema.solve(solver=cp.SCS)
+		result = problema.solve(solver=cp.SCS, verbose = False)
 
 		return de.value/np.trace(de.value)
 
@@ -178,6 +178,22 @@ class CSdata():
 			else:
 				return dict(csdm = DM_withShots ,thdm = dens)
 
+
+
+
+	def csReconstruction(self,iterator):
+		dens = next(iterator)
+		#print(dens.shape)
+		paulis = self.string2paulibasis(self.path)
+		# vectorized version of the POVM
+		vec_paulis = self.base2operator(paulis, True)
+		probs = np.abs(vec_paulis.conj().T@dens.reshape(-1, 1, order="F"))
+		exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
+		#approximation of CS tolerance for a given number of shots, as per article ....
+		tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
+		return  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
+	
+
 	def ParallelGenData(self , num_matrices):
 
 		"""
@@ -196,34 +212,28 @@ class CSdata():
 			#dens = self.density_matrix(self.nq)
 
 
-		def csReconstruction(iterator):
-			dens = next(iterator)
-			paulis = self.string2paulibasis(self.path)
-			# vectorized version of the POVM
-			vec_paulis = self.base2operator(paulis, True)
-			probs = np.abs(vec_paulis.conj().T@dens.reshape(-1, 1, order="F"))
-			exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
-
-			#approximation of CS tolerance for a given number of shots, as per article ....
-			tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
-			return  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
-
 		DMiterators = [DensityMatrixIterator(self.nq) for _ in range(num_matrices)]
+		#for el in DMiterators:
+		#	mat = self.csReconstruction(el)
+		#	print('inside AGAIN')
+		#	print(mat.shape)
 		with Pool() as pool:
 			# Map the function to generate random density matrices for each worker
-			result = pool.map(csReconstruction, DMiterators)
+			#result = pool.map(self.csReconstruction, DMiterators)
+			result = pool.starmap(self.csReconstruction, [(dm,) for dm in DMiterators])
+
 
 		return result
 
 if __name__ == "__main__":
 
-	#testing the generation of random pauli strings
+	#1) testing the generation of random pauli strings
 	#generate_unique_base3_numbers(NumPauliStrings,NumQubits,path)
 	#o = np.load(path+'.npy', allow_pickle=True)
 	#print(o)
 
-	#testing density matrix generation
-	#ob = CSdata(NumQubits,NumShots,NumPauliStrings,path)
+	#2) testing density matrix generation
+	ob = CSdata(NumQubits,NumShots,NumPauliStrings,path)
 	#d = ob.density_matrix()
 	#print(d.shape),print(np.trace(d).real)
 
@@ -232,10 +242,23 @@ if __name__ == "__main__":
 	#print("fidelity WITH shots approximation: ", np.round(np.abs(np.trace(netdata['csdm']@netdata['thdm'])), 3))
 	
 
-	#TESTING THE DENSITY MATRIX ITERATOR. It must generate a list of different density matrices
-	DMiterators = [DensityMatrixIterator(1) for _ in range(3)]
-	for el in DMiterators:
-		mat = next(el)
-		print(mat)
+	#3) TESTING THE DENSITY MATRIX ITERATOR. It must generate a list of different density matrices
+	#DMiterators = [DensityMatrixIterator(1) for _ in range(3)]
+	#for el in DMiterators:
+	#	mat = next(el)
+	#	print(mat.shape)
 
+	#4) testing PArallel data generation
+
+	#def csR(iterator):
+	#	dens = next(iterator)
+	#	return dens
+	
+	#for el in DMiterators:
+	#	mat = csR(el)
+	#	print('AGAIN')
+	#	print(mat.shape)
+
+	o = list(ob.ParallelGenData(2))
+	print(o[0][0].shape),print(o[0][1].shape), print(len(o))
 
