@@ -205,10 +205,11 @@ class CSdata():
 		exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
 		#approximation of CS tolerance for a given number of shots, as per article ....
 		tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
-		try:
-			return (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
-		except Exception:
-			pass
+		out =  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
+		if out is "NoneType":
+			return "nan"
+		else:
+			return out
 	
 
 	def ParallelGenData(self , num_matrices, numcpu):
@@ -278,8 +279,8 @@ if __name__ == "__main__":
 	#	print(mat.shape)
 
 	print('num CPU available on computer', cpu_count())
-	o = list(ob.ParallelGenData(3,numcpu))
-	for i in range(3):
+	o = list(ob.ParallelGenData(8,4))
+	for i in range(len(o)):
 		
-		print(o[i][0].shape), print('total length', len(o))
+		print(o[i][0].shape), print('trace', np.trace(o[i][0]))
 
