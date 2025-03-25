@@ -3,7 +3,7 @@ import scipy as sp
 import cvxpy as cp
 import random
 from densityMatrix import DensityMatrixIterator
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 import configparser
 
@@ -16,7 +16,7 @@ NumShots = int(config['DATA']['NumShots'])
 NumPauliStrings = int(config['DATA']['NumPauliStrings'])
 path = config['DATA']['PauliFilePath']
 
-
+numcpu = int(config['DATA']['numcpu'])
 import random
 
 def generate_unique_base3_numbers(N, length,path):
@@ -182,6 +182,20 @@ class CSdata():
 
 
 	def csReconstruction(self,iterator):
+		
+		"""
+		Compress sensing reconstruction for the parallel implementation. If the tolerance level
+		is inadequate for the CS reconstruction, an error occurs and the reconstruction just skips
+		to the next dm.
+
+		Input:
+			iterator : an object function of typ RandomDensityMatrix used to generate a random dm
+			           for the usual compressed sensing reconstruction
+
+		Returns:
+			a compressed sensing reconstruction 
+		
+		"""
 		dens = next(iterator)
 		#print(dens.shape)
 		paulis = self.string2paulibasis(self.path)
@@ -191,10 +205,13 @@ class CSdata():
 		exp_probs = np.random.multinomial(self.NumSh, probs.flatten())/self.NumSh
 		#approximation of CS tolerance for a given number of shots, as per article ....
 		tolerance = np.sqrt(np.sum(exp_probs*(1 - exp_probs))/self.NumSh)
-		return  (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
+		try:
+			return (self.compressed_sensing(exp_probs, vec_paulis, tolerance),dens)
+		except Exception:
+			pass
 	
 
-	def ParallelGenData(self , num_matrices):
+	def ParallelGenData(self , num_matrices, numcpu):
 
 		"""
 		This is a parallelized function to generate the dataset for trianing the network. Given num_matrices random
@@ -211,13 +228,14 @@ class CSdata():
 	
 			#dens = self.density_matrix(self.nq)
 
-
 		DMiterators = [DensityMatrixIterator(self.nq) for _ in range(num_matrices)]
 		#for el in DMiterators:
 		#	mat = self.csReconstruction(el)
 		#	print('inside AGAIN')
 		#	print(mat.shape)
-		with Pool() as pool:
+		
+		with Pool(numcpu) as pool:
+			
 			# Map the function to generate random density matrices for each worker
 			#result = pool.map(self.csReconstruction, DMiterators)
 			result = pool.starmap(self.csReconstruction, [(dm,) for dm in DMiterators])
@@ -259,6 +277,8 @@ if __name__ == "__main__":
 	#	print('AGAIN')
 	#	print(mat.shape)
 
-	o = list(ob.ParallelGenData(2))
-	print(o[0][0].shape),print(o[0][1].shape), print(len(o))
+	print('num CPU available on computer', cpu_count())
+	o = list(ob.ParallelGenData(3,numcpu))
+	for i in range(3):
+		print(o[i][0].shape), print('total length', len(o))
 
