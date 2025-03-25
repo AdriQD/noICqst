@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
 	netdata = ob.GenerateData(d,False)
 	print
-	print("fidelityWITHshots: ", np.round(np.abs(np.trace(netdata['csdm']@netdata['thdm'])), 3))
+	print("fidelity WITH shots approximation: ", np.round(np.abs(np.trace(netdata['csdm']@netdata['thdm'])), 3))
 
 
 
