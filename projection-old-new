@@ -34,6 +34,7 @@ def proj(corrs_counts, corr_vec, corr_org, tiponorma,pauli_basis_4q):
 #I don't undesrstand why here the minimization is run against a random hermitian, instead of reducing the 
 #difference between target and a-given matrix
 
+### DEPRECATED ###
 def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma):    
 
 #for the constraints
@@ -58,6 +59,19 @@ def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma):
 	return result_status, optimized_matrix
 
 def NewProjB(nn_densityMatrix, tiponorma: str, verb: str):
+
+	"""
+	This function find the closest density matrix to a given random density matrix.
+
+	input:
+		nn_densityMatrix: this is a random density matrix input. In our case, the network output
+		tiponorma: which type of norm we use for the optimization problem.
+		verb: True or False, verbose.
+
+	returns:
+		projectionDM : the closest density matrix, according to the norm provided.
+
+	"""
 
 	# Define the optimization variable X (the matrix we want to find)
 	X = cp.Variable(nn_densityMatrix.shape, complex=True)
