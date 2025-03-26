@@ -34,7 +34,7 @@ def proj(corrs_counts, corr_vec, corr_org, tiponorma,pauli_basis_4q):
 #I don't undesrstand why here the minimization is run against a random hermitian, instead of reducing the 
 #difference between target and a-given matrix
 
-def proj(nn_densityMatrix,target_densityMatrix, tiponorma):    
+def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma):    
 
 #for the constraints
 	
