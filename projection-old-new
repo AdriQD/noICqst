@@ -57,4 +57,27 @@ def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma):
 	optimized_matrix = nn_densityMatrix.value
 	return result_status, optimized_matrix
 
+def NewProjB(nn_densityMatrix, tiponorma: str, verb: str):
+
+	# Define the optimization variable X (the matrix we want to find)
+	X = cp.Variable(nn_densityMatrix.shape, complex=True)
+
+	# Define the constraints
+	constraints = [
+	    cp.Hermitian(X),            # X must be Hermitian
+	    X >> 0,                     # X must be positive semidefinite
+	    cp.trace(X) == 1            # Trace of X must be 1
+	]
+
+	# Define the objective function (minimize Frobenius norm)
+	objective = cp.Minimize(cp.norm(A - X, tiponorma))
+
+	# Set up and solve the problem
+	problem = cp.Problem(objective, constraints)
+	problem.solve(verbose=verb, solver='SCS')
+
+	# The result will be the closest density matrix
+	projectionDM = X.value
+	return projectionDM
+	
 
