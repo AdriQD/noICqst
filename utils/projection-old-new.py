@@ -38,30 +38,33 @@ def proj(corrs_counts, corr_vec, corr_org, tiponorma,pauli_basis_4q):
 #I don't undesrstand why here the minimization is run against a random hermitian, instead of reducing the 
 #difference between target and a-given matrix
 
-### DEPRECATED ###
-def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma, epsilon):    
 
-	#for the constraints
+def NewProj(nn_densityMatrix, prob, tiponorma, epsilon):    
+    # Dimensions
+    di2 = nn_densityMatrix.shape[0]
+    di = int(sqrt(di2))
+    
+    # Define the variable to optimize: a density matrix
+    de = cp.Variable((di, di), hermitian=True)
+    
+    # Objective: make de close to nn_densityMatrix
+    F = cp.norm(de - nn_densityMatrix, tiponorma)  
+    
+    # Constraints
+    constraints = [
+        de >> 0,                           # Positivity
+        cp.trace(de) == 1,                # Unit trace
+        cp.norm(nn_densityMatrix.conj().T @ cp.reshape(de, (di2, 1), order="F") - prob.reshape(-1, 1)) <= epsilon
+    ]
+    
+    # Optimization problem
+    objective = cp.Minimize(F)    
+    proj_cvx = cp.Problem(objective, constraints)
+    result_status = proj_cvx.solve(verbose=True, solver='SCS')
+    
+    optimized_matrix = de.value
+    return result_status, optimized_matrix
 
-	di2 = target_densityMatrix.shape[0]
-	di = int(sqrt(di2))
-	de = cp.Variable((di, di), hermitian=True)
-	F=cp.norm(nn_densityMatrix-target_densityMatrix, tiponorma)  
-	
-	# Set the positivity. We can force the trace 1 in the network layer, positivity is wha we miss
-	
-	constraints = [de >> 0]
-	constraints += [cp.trace(de) == 1]
-	constraints += [cp.norm(nn_densityMatrix.conj().T@cp.reshape(de, (di2, 1), order="F")
-				   - prob.reshape(-1, 1)) <= epsilon]
-	
-	# Construct the problem.
-	objective = cp.Minimize(F)    
-	
-	prob = cp.Problem(objective, constraints)
-	result_status = prob.solve(verbose=True, solver='SCS')
-	optimized_matrix = nn_densityMatrix.value
-	return result_status, optimized_matrix
 
 def NewProjB(nn_densityMatrix, tiponorma: str, verb: str):
 
