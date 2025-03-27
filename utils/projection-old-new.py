@@ -1,5 +1,6 @@
 
 import cvxpy as cp
+from numpy import sqrt
 
 
 #OLD PROJECTION
@@ -38,25 +39,26 @@ def proj(corrs_counts, corr_vec, corr_org, tiponorma,pauli_basis_4q):
 #difference between target and a-given matrix
 
 ### DEPRECATED ###
-def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma):    
+def NewProj(nn_densityMatrix,target_densityMatrix, tiponorma, epsilon):    
 
-#for the constraints
-	
+	#for the constraints
+
+	di2 = target_densityMatrix.shape[0]
+	di = int(sqrt(di2))
+	de = cp.Variable((di, di), hermitian=True)
 	F=cp.norm(nn_densityMatrix-target_densityMatrix, tiponorma)  
 	
 	# Set the positivity. We can force the trace 1 in the network layer, positivity is wha we miss
-	constraints = [ nn_densityMatrix >> 0] 
+	
+	constraints = [de >> 0]
+	constraints += [cp.trace(de) == 1]
+	constraints += [cp.norm(nn_densityMatrix.conj().T@cp.reshape(de, (di2, 1), order="F")
+				   - prob.reshape(-1, 1)) <= epsilon]
 	
 	# Construct the problem.
 	objective = cp.Minimize(F)    
 	
-	###impose corr constraints. THIS IS NO LONGER NEEDED.
-	#for i in range(1,256): #not imposing normalization
-	#	if corrs_counts[i-1]=="1":   
-	#		corr_value=cp.real(cp.trace(pauli_basis_4q[i]@org_mat))
-	#		constraints.append(cp.real(cp.trace(variable_rho@pauli_basis_4q[i])) == corr_value)   
-
-	prob = cp.Problem(objective)
+	prob = cp.Problem(objective, constraints)
 	result_status = prob.solve(verbose=True, solver='SCS')
 	optimized_matrix = nn_densityMatrix.value
 	return result_status, optimized_matrix
@@ -81,13 +83,13 @@ def NewProjB(nn_densityMatrix, tiponorma: str, verb: str):
 
 	# Define the constraints
 	constraints = [
-	    cp.Hermitian(X),            # X must be Hermitian
-	    X >> 0,                     # X must be positive semidefinite
-	    cp.trace(X) == 1            # Trace of X must be 1
+		cp.Hermitian(X),            # X must be Hermitian
+		X >> 0,                     # X must be positive semidefinite
+		cp.trace(X) == 1            # Trace of X must be 1
 	]
 
 	# Define the objective function (minimize Frobenius norm)
-	objective = cp.Minimize(cp.norm(A - X, tiponorma))
+	objective = cp.Minimize(cp.norm(nn_densityMatrix - X, tiponorma))
 
 	# Set up and solve the problem
 	problem = cp.Problem(objective, constraints)
