@@ -39,31 +39,44 @@ def proj(corrs_counts, corr_vec, corr_org, tiponorma,pauli_basis_4q):
 #difference between target and a-given matrix
 
 
-def NewProj(nn_densityMatrix, prob, tiponorma, epsilon):    
-    # Dimensions
-    di2 = nn_densityMatrix.shape[0]
-    di = int(sqrt(di2))
-    
-    # Define the variable to optimize: a density matrix
-    de = cp.Variable((di, di), hermitian=True)
-    
-    # Objective: make de close to nn_densityMatrix
-    F = cp.norm(de - nn_densityMatrix, tiponorma)  
-    
-    # Constraints
-    constraints = [
-        de >> 0,                           # Positivity
-        cp.trace(de) == 1,                # Unit trace
-        cp.norm(nn_densityMatrix.conj().T @ cp.reshape(de, (di2, 1), order="F") - prob.reshape(-1, 1)) <= epsilon
-    ]
-    
-    # Optimization problem
-    objective = cp.Minimize(F)    
-    proj_cvx = cp.Problem(objective, constraints)
-    result_status = proj_cvx.solve(verbose=True, solver='SCS')
-    
-    optimized_matrix = de.value
-    return result_status, optimized_matrix
+def NewProj(nn_densityMatrix,  tiponorma):  
+
+	"""
+	Find the closer densty matrix given a neural network output. 
+
+	inputs.
+		nn_densityMatrix: the output from the network. its a set of matrix elemens
+						We can force Trace =1 but ot positivity
+		
+	outputs.
+		A =  the closer density matrix in the feasible set.
+	"""
+
+	# Dimensions
+	di2 = nn_densityMatrix.shape[0]
+	di = int(sqrt(di2))
+	
+	# Define the variable to optimize: a density matrix
+	guess = cp.Variable((di, di), hermitian=True)
+	target = cp.Constant(nn_densityMatrix)
+	
+	# Objective: make de close to nn_densityMatrix
+	F = cp.norm(guess- target, tiponorma)  
+	
+	# Constraints
+	constraints = [
+	    guess >> 0,                           # Positivity
+	    cp.trace(guess) == 1                # Unit trace
+	]
+
+	
+	# Optimization problem
+	objective = cp.Minimize(F)    
+	proj_cvx = cp.Problem(objective, constraints)
+	result_status = proj_cvx.solve(verbose=True, solver='SCS')
+	
+	optimized_matrix = guess.value
+	return result_status, optimized_matrix
 
 
 def NewProjB(nn_densityMatrix, tiponorma: str, verb: str):
